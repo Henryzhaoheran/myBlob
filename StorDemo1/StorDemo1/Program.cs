@@ -37,15 +37,43 @@ namespace StorDemo1
             foreach (string filePath in fileEntries)
             {
                 //Get the date to use with the key
-                string key = DateTime.UtcNow.ToString("yyyy-MM-dd-HH:mm:ss") + "-" + Path.GetFileName(filePath);
+                // string key = DateTime.UtcNow.ToString("yyyy-MM-dd-HH:mm:ss") + "-" + Path.GetFileName(filePath);
+                string key = Path.GetFileName(filePath);
 
                 UploadBlob(container, key, filePath, false);
             }
+            Console.WriteLine(@"Upload processing complete, listing all the blobs in the destination container");
 
-            Console.WriteLine(@"Upload processing complete. Press any key to exit...");
-            Console.ReadKey();  
+
+            // List all the blobs
+            foreach (IListBlobItem item in container.ListBlobs(null, false))
+            {
+                if (item.GetType() == typeof(CloudBlockBlob))
+                {
+                    CloudBlockBlob blob = (CloudBlockBlob)item;
+                    Console.WriteLine("Block blob of length {0}: {1}", blob.Properties.Length, blob.Uri);
+                }
+                else if (item.GetType() == typeof(CloudPageBlob))
+                {
+                    CloudPageBlob pageBlob = (CloudPageBlob)item;
+                    Console.WriteLine("Page blob of length {0}: {1}", pageBlob.Properties.Length, pageBlob.Uri);
+                }
+                else if (item.GetType() == typeof(CloudBlobDirectory))
+                {
+                    CloudBlobDirectory directory = (CloudBlobDirectory)item;
+                    Console.WriteLine("Directory: {0}", directory.Uri);
+                }
+            }
+
+            // List pic1.bmp properties
+            CloudBlobContainer container2 = bc.GetContainerReference(destContainer);
+            Console.WriteLine("LastModifiedUTC: " + container2.Properties.LastModified);
+            Console.WriteLine("ETag: " + container2.Properties.ETag);
+
+            Console.WriteLine(@"List container processing complete. Press any key to exit...");
+            Console.ReadKey();
         }
-        
+
         static void UploadBlob(CloudBlobContainer container, string key, string fileName, bool deleteAfter)
         {
             Console.WriteLine(@"uploading file to container: key=" + key + " source file=" + fileName);
