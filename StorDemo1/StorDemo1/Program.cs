@@ -18,7 +18,7 @@ namespace StorDemo1
         {
             string connString = ConfigurationManager.AppSettings["StorageConnectionString"];
             string localfolder = ConfigurationManager.AppSettings["sourcefolder"];
-            string destContainer = ConfigurationManager.AppSettings["destContainer"];
+            string destContainer = "mybooks"; //ConfigurationManager.AppSettings["destContainer"];
 
             //Get a reference to the storage account
             Console.WriteLine(@"Connecting to storage account");
@@ -46,7 +46,7 @@ namespace StorDemo1
 
 
             // List all the blobs
-            foreach (IListBlobItem item in container.ListBlobs(null, false))
+            foreach (IListBlobItem item in container.ListBlobs(useFlatBlobListing: true))
             {
                 if (item.GetType() == typeof(CloudBlockBlob))
                 {
@@ -58,17 +58,19 @@ namespace StorDemo1
                     CloudPageBlob pageBlob = (CloudPageBlob)item;
                     Console.WriteLine("Page blob of length {0}: {1}", pageBlob.Properties.Length, pageBlob.Uri);
                 }
-                else if (item.GetType() == typeof(CloudBlobDirectory))
-                {
-                    CloudBlobDirectory directory = (CloudBlobDirectory)item;
-                    Console.WriteLine("Directory: {0}", directory.Uri);
-                }
+                //else if (item.GetType() == typeof(CloudBlobDirectory))
+                //{
+                //    CloudBlobDirectory directory = (CloudBlobDirectory)item;
+                //    Console.WriteLine("Directory: {0}", directory.Uri);
+                //}
             }
 
-            // List pic1.bmp properties
-            CloudBlobContainer container2 = bc.GetContainerReference(destContainer);
-            Console.WriteLine("LastModifiedUTC: " + container2.Properties.LastModified);
-            Console.WriteLine("ETag: " + container2.Properties.ETag);
+            ListBlobsFromServiceClientAsync(bc, "demoblob/");
+
+            //// List pic1.bmp properties
+            //CloudBlobContainer container2 = bc.GetContainerReference(destContainer);
+            //Console.WriteLine("LastModifiedUTC: " + container2.Properties.LastModified);
+            //Console.WriteLine("ETag: " + container2.Properties.ETag);
 
             Console.WriteLine(@"List container processing complete. Press any key to exit...");
             Console.ReadKey();
@@ -90,6 +92,41 @@ namespace StorDemo1
             // if delete of file is requested, then do that
             if (deleteAfter)
                 File.Delete(fileName);
+        }
+
+        private static async Task ListBlobsFromServiceClientAsync(CloudBlobClient blobClient, string prefix)
+        {
+            Console.WriteLine("List blobs by prefix. Prefix must include container name:");
+
+            BlobContinuationToken continuationToken = null;
+            BlobResultSegment resultSegment = null;
+
+            try
+            {
+                do
+                {
+                    // The prefix is required when listing blobs from the service client. The prefix must include
+                    // the container name.
+                    resultSegment = await blobClient.ListBlobsSegmentedAsync(prefix, continuationToken);
+                    foreach (var blob in resultSegment.Results)
+                    {
+                        Console.WriteLine("\tBlob:" + blob.Uri);
+                    }
+
+                    Console.WriteLine();
+
+                    // Get the continuation token.
+                    continuationToken = resultSegment.ContinuationToken;
+
+                } while (continuationToken != null);
+
+            }
+            catch (StorageException e)
+            {
+                Console.WriteLine(e.Message);
+                Console.ReadLine();
+                throw;
+            }
         }
     }
 }
