@@ -16,13 +16,43 @@ namespace tableStor
         static void Main(string[] args)
         {
             var storageAccount = CloudStorageAccount.Parse(ConfigurationSettings.AppSettings["StorageConnectionString"]);
+
+            // Create an Azure table customer
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            CloudTable table1 = tableClient.GetTableReference("customers");
-            table1.CreateIfNotExists();
+            CloudTable tableCx = tableClient.GetTableReference("customers");
+            tableCx.CreateIfNotExists();
+
+            //Insert records
+            OrderEntity newOrder = new OrderEntity("Archer", "20141216");
+            newOrder.OrderNumber = "101";
+            newOrder.ShippedDate = Convert.ToDateTime("2014/12/18");
+            newOrder.RequiredDate = Convert.ToDateTime("2014/12/22");
+            newOrder.Status = "shipped";
+            TableOperation insertOperation = TableOperation.Insert(newOrder);
+            tableCx.Execute(insertOperation);
+
 
 
             // Console.WriteLine(storageAccount);
             Console.ReadKey();
         }
     }
+
+    public class OrderEntity : TableEntity
+    {
+        public OrderEntity(string customerName, String orderDate)
+        {
+            this.PartitionKey = customerName;
+            this.RowKey = orderDate;
+        }
+        public OrderEntity() { }
+        public string OrderNumber { get; set; }
+        public DateTime RequiredDate { get; set; }
+        public DateTime ShippedDate { get; set; }
+        public string Status { get; set; }
+    }
+
+
+
 }
+
