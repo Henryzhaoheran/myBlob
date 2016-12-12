@@ -33,6 +33,7 @@ namespace StorDemo1
             container.CreateIfNotExists();
 
             //upload files
+            Console.ReadKey();
             string[] fileEntries = Directory.GetFiles(localfolder);
             foreach (string filePath in fileEntries)
             {
